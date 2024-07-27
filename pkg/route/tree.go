@@ -151,7 +151,10 @@ func checkPathValid(path string) {
 // addRoute adds a node with the given handle to the path.
 func (r *router) addRoute(path string, h app.HandlersChain) {
 	checkPathValid(path)
-
+	fmt.Println("addRoute: " + path)
+	for i, f := range h {
+		fmt.Println(i, f)
+	}
 	var (
 		pnames []string // Param names
 		ppath  = path   // Pristine path
@@ -194,6 +197,8 @@ func (r *router) addRoute(path string, h app.HandlersChain) {
 }
 
 func (r *router) insert(path string, h app.HandlersChain, t kind, ppath string, pnames []string) {
+	fmt.Println("insert: " + path)
+	fmt.Println(h, t, ppath, pnames)
 	currentNode := r.root
 	if currentNode == nil {
 		panic("hertz: invalid node")
@@ -629,4 +634,53 @@ loop:
 	// without a trailing slash if a leaf exists for that path
 	found = fixTrailingSlash && path == "/" && n.handlers != nil
 	return
+}
+
+func (r *router) getNodeByPath(path string) *node {
+	currentNode := r.root
+	search := path
+
+	for currentNode != nil {
+		if currentNode.kind == skind {
+			if len(search) >= len(currentNode.prefix) && currentNode.prefix == search[:len(currentNode.prefix)] {
+				// Continue search
+				search = search[len(currentNode.prefix):]
+			} else {
+				// No matching prefix, return nil
+				return nil
+			}
+		}
+
+		if search == "" {
+			// If the search is empty, return the current node
+			return currentNode
+		}
+
+		// Search for static children
+		if child := currentNode.findChild(search[0]); child != nil {
+			currentNode = child
+			continue
+		}
+
+		// If no static child is found, check for paramChild or anyChild
+		if currentNode.paramChild != nil {
+			currentNode = currentNode.paramChild
+			idx := strings.Index(search, "/")
+			if idx == -1 {
+				search = ""
+			} else {
+				search = search[idx:]
+			}
+			continue
+		}
+
+		if currentNode.anyChild != nil {
+			return currentNode.anyChild
+		}
+
+		// If no child is found, return nil
+		return nil
+	}
+
+	return nil
 }

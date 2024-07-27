@@ -42,6 +42,7 @@ package route
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"regexp"
 	"strings"
@@ -87,6 +88,9 @@ var _ IRouter = (*RouterGroup)(nil)
 
 // Use adds middleware to the group, see example code in GitHub.
 func (group *RouterGroup) Use(middleware ...app.HandlerFunc) IRoutes {
+	for i := range middleware {
+		fmt.Println("middleware: ", middleware[i])
+	}
 	group.Handlers = append(group.Handlers, middleware...)
 	return group.returnObj()
 }

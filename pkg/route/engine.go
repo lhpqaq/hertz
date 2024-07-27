@@ -765,7 +765,8 @@ func (engine *Engine) ServeHTTP(c context.Context, ctx *app.RequestContext) {
 		}
 		// Find route in tree
 		value := t[i].find(rPath, paramsPointer, unescape)
-
+		fmt.Println(value)
+		fmt.Println(value.fullPath)
 		if value.handlers != nil {
 			ctx.SetHandlers(value.handlers)
 			ctx.SetFullPath(value.fullPath)
@@ -895,6 +896,41 @@ func (engine *Engine) Use(middleware ...app.HandlerFunc) IRoutes {
 	engine.RouterGroup.Use(middleware...)
 	engine.rebuild404Handlers()
 	engine.rebuild405Handlers()
+	return engine
+}
+
+func (engine *Engine) UseFor(method string, paths *[]string, middleware ...app.HandlerFunc) IRoutes {
+	root := engine.trees.get(method)
+	if root == nil {
+		hlog.SystemLogger().Errorf("Method not found: %s", method)
+	}
+
+	for _, path := range *paths {
+		find := root.getNodeByPath(path)
+		if find == nil {
+			hlog.SystemLogger().Errorf("Path not found: %s", path)
+		}
+		find.ppath = path
+	}
+	engine.RouterGroup.Use(middleware...)
+	engine.rebuild404Handlers()
+	engine.rebuild405Handlers()
+	return engine
+}
+
+func (engine *Engine) DebugTemp(method string, path string) IRoutes {
+	root := engine.trees.get(method)
+	if root == nil {
+		hlog.SystemLogger().Errorf("Method not found: %s", method)
+	}
+
+	find := root.getNodeByPath(path)
+	if find == nil {
+		hlog.SystemLogger().Errorf("Path not found: %s", path)
+		return engine
+	}
+	fmt.Println("debug temp")
+	fmt.Println(find.ppath)
 	return engine
 }
 
